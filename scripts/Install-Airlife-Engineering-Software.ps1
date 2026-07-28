@@ -2,12 +2,13 @@
 
 [CmdletBinding()]
 param(
-    [string]$DownloadDirectory = "$env:ProgramData\Airlife\Pulseway\EngineeringSoftware"
+    [string]$DownloadDirectory = "$env:ProgramData\Airlife\Pulseway\EngineeringSoftware",
+    [string]$RepositoryBranch = 'main'
 )
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$repositoryRoot = 'https://raw.githubusercontent.com/lufecito/airlife-wallpaper/main/scripts'
+$repositoryRoot = "https://raw.githubusercontent.com/lufecito/airlife-wallpaper/$RepositoryBranch/scripts"
 $restartRequired = $false
 
 $installers = @(
