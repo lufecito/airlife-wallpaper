@@ -1,0 +1,46 @@
+name: CI and security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan Git history for secrets (redacted output)
+        run: docker run --rm -v "$GITHUB_WORKSPACE:/repo:ro" ghcr.io/gitleaks/gitleaks:v8.30.1 git --redact=100 --exit-code 1 /repo
+      - name: Scan dependencies and configuration
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '1'
+      - name: Validate wallpaper PNG assets
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          for path in sorted(Path(".").glob("*.png")):
+              data = path.read_bytes()
+              assert data[:8] == b"\x89PNG\r\n\x1a\n", f"{path}: PNG header invalid"
+              width, height = struct.unpack(">II", data[16:24])
+              assert width > 0 and height > 0, f"{path}: PNG dimensions invalid"
+              print(f"{path}: {width}x{height}")
+          PY
